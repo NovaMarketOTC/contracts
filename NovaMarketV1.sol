@@ -6,11 +6,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract NovaMarketV1 {
     struct Sale {
         uint id;
-        string token_name;
-        address token_contract;
         uint sale_amount;
         uint sale_price;
+        address token_contract;
         address owner;
+        string token_name;
         bool already_sold;
     }
 
@@ -25,22 +25,23 @@ contract NovaMarketV1 {
         uint _sale_price
     ) public {
         IERC20 token = IERC20(_token_contract);
+        uint currID = nextSaleId;
         require(
             token.transferFrom(msg.sender, address(this), _sale_amount),
             "Token transfer failed"
         );
         Sale memory newSale = Sale(
-            nextSaleId,
-            _token_name,
-            _token_contract,
+            currID,
             _sale_amount,
             _sale_price,
+            _token_contract,
             msg.sender,
+            _token_name,
             false
         );
         sales.push(newSale);
-        salesMap[nextSaleId] = newSale;
-        nextSaleId++;
+        salesMap[currID] = newSale;
+        nextSaleId = currID + 1;
     }
 
     function getNumberOfSales() public view returns (uint) {
