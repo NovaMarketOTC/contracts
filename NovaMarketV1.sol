@@ -15,33 +15,32 @@ contract NovaMarketV1 {
     }
 
     Sale[] public sales;
-    mapping(uint => Sale) public salesMapping;
+    mapping(uint => Sale) public salesMap;
+    uint public nextSaleId = 1;
 
     function createSale(
-        uint _id,
         string memory _token_name,
         address _token_contract,
         uint _sale_amount,
-        uint _sale_price,
-        address _owner
+        uint _sale_price
     ) public {
-        require(msg.sender == _owner, "Only the token owner can create sales");
         IERC20 token = IERC20(_token_contract);
         require(
             token.transferFrom(msg.sender, address(this), _sale_amount),
             "Token transfer failed"
         );
         Sale memory newSale = Sale(
-            _id,
+            nextSaleId,
             _token_name,
             _token_contract,
             _sale_amount,
             _sale_price,
-            _owner,
+            msg.sender,
             false
         );
         sales.push(newSale);
-        salesMapping[_id] = newSale;
+        salesMap[nextSaleId] = newSale;
+        nextSaleId++;
     }
 
     function getNumberOfSales() public view returns (uint) {
@@ -49,7 +48,7 @@ contract NovaMarketV1 {
     }
 
     function buySale(uint _saleId) public payable {
-        Sale storage sale = salesMapping[_saleId];
+        Sale storage sale = salesMap[_saleId];
         require(!sale.already_sold, "Sale already completed");
         require(
             msg.value >= sale.sale_price,
@@ -62,5 +61,34 @@ contract NovaMarketV1 {
             "Token transfer to buyer failed"
         );
         sale.already_sold = true;
+    }
+
+    function getSalePrice(uint _saleId) public view returns (uint) {
+        Sale storage sale = salesMap[_saleId];
+        return sale.sale_price;
+    }
+
+    function getSaleAmount(uint _saleId) public view returns (uint) {
+        Sale storage sale = salesMap[_saleId];
+        return sale.sale_amount;
+    }
+
+    function getTokenContract(uint _saleId) public view returns (address) {
+        Sale storage sale = salesMap[_saleId];
+        return sale.token_contract;
+    }
+
+    function getOwner(uint _saleId) public view returns (address) {
+        Sale storage sale = salesMap[_saleId];
+        return sale.owner;
+    }
+
+    function isSold(uint _saleId) public view returns (bool) {
+        Sale storage sale = salesMap[_saleId];
+        return sale.already_sold;
+    }
+
+    function getAllSales() public view returns (Sale[] memory) {
+        return sales;
     }
 }
