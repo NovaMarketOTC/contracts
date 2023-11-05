@@ -1,22 +1,36 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+interface IExternalContract {
+    function read() external view returns (uint256);
+}
+
 contract NovaMarketV1 {
+    IExternalContract public externalContractInstance;
+
+    function callExternalFunction() public view returns (uint value) {
+        return externalContractInstance.read();
+    }
+
     struct Sale {
         uint id;
+        string token_name;
+        address token_contract;
         uint sale_amount;
         uint sale_price;
-        address token_contract;
         address owner;
-        string token_name;
         bool already_sold;
     }
 
     Sale[] public sales;
     mapping(uint => Sale) public salesMap;
     uint public nextSaleId = 1;
+
+    constructor(address _externalContractAddress) {
+        externalContractInstance = IExternalContract(_externalContractAddress);
+    }
 
     function createSale(
         string memory _token_name,
@@ -25,23 +39,22 @@ contract NovaMarketV1 {
         uint _sale_price
     ) public {
         IERC20 token = IERC20(_token_contract);
-        uint currID = nextSaleId;
         require(
             token.transferFrom(msg.sender, address(this), _sale_amount),
             "Token transfer failed"
         );
         Sale memory newSale = Sale(
-            currID,
+            nextSaleId,
+            _token_name,
+            _token_contract,
             _sale_amount,
             _sale_price,
-            _token_contract,
             msg.sender,
-            _token_name,
             false
         );
         sales.push(newSale);
-        salesMap[currID] = newSale;
-        nextSaleId = currID + 1;
+        salesMap[nextSaleId] = newSale;
+        nextSaleId++;
     }
 
     function getNumberOfSales() public view returns (uint) {
